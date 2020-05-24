@@ -341,6 +341,7 @@ dependencies = [
  "cpal",
  "criterion",
  "minifb",
+ "rayon",
 ]
 
 [[package]]

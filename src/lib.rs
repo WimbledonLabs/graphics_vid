@@ -1,32 +1,26 @@
+use rayon::prelude::*;
+
 pub fn wu_line(
-    color: u32,
+    (r,g,b,a): (f32,f32,f32,f32),
     (x0, y0): (i32, i32),
     (x1, y1): (i32, i32),
     width: usize,
-    buffer: &mut Vec<u32>,
+    buffer: &mut Vec<(f32,f32,f32,f32)>,
 ) {
-    let r = color & 0x00ff_0000 >> 16;
-    let g = color & 0x0000_ff00 >> 8;
-    let b = color & 0x0000_00ff;
-
-    let fr = r as f32 / 255.0;
-    let fg = g as f32 / 255.0;
-    let fb = b as f32 / 255.0;
-
     let dx = x1 - x0;
     let dy = y1 - y0;
 
     // Vertical line
     if dx == 0 {
         for y in y0.min(y1)..=y0.max(y1) {
-            set_pixel(color, x0, y, width, buffer);
+            set_pixel((r,g,b,a), x0, y, width, buffer);
         }
     }
 
     // Horizontal line
     else if dy == 0 {
         for x in x0.min(x1)..=x0.max(x1) {
-            set_pixel(color, x, y0, width, buffer)
+            set_pixel((r,g,b,a), x, y0, width, buffer)
         }
     }
 
@@ -36,7 +30,7 @@ pub fn wu_line(
         let xdir = dx.signum();
         let ydir = dy.signum();
         for i in 0..=dx {
-            set_pixel(color, i*xdir + x0, i*ydir + y0, width, buffer);
+            set_pixel((r,g,b,a), i*xdir + x0, i*ydir + y0, width, buffer);
         }
     }
 
@@ -51,23 +45,8 @@ pub fn wu_line(
         let mut y = y0;
         let mut x = x0;
         while x != x1 {
-            let fr = fr * error;
-            let fg = fg * error;
-            let fb = fb * error;
-
-            let r0 = (linear_to_srgb(fr) * 255.0) as u32;
-            let g0 = (linear_to_srgb(fg) * 255.0) as u32;
-            let b0 = (linear_to_srgb(fb) * 255.0) as u32;
-
-            let r1 = (linear_to_srgb(1.0 - fr) * 255.0) as u32;
-            let g1 = (linear_to_srgb(1.0 - fg) * 255.0) as u32;
-            let b1 = (linear_to_srgb(1.0 - fb) * 255.0) as u32;
-
-            let color0 = r0 << 16 | g0 << 8 | b0;
-            let color1 = r1 << 16 | g1 << 8 | b1;
-
-            set_pixel(color0, x, y+ydir, width, buffer);
-            set_pixel(color1, x, y, width, buffer);
+            set_pixel((r,g,b,error), x, y+ydir, width, buffer);
+            set_pixel((r,g,b,1.0-error), x, y, width, buffer);
             error += error_step;
             if error >= 1.0 {
                 y += ydir;
@@ -89,23 +68,8 @@ pub fn wu_line(
         let mut y = y0;
         let mut x = x0;
         while y != y1 {
-            let fr = fr * error;
-            let fg = fg * error;
-            let fb = fb * error;
-
-            let r0 = (linear_to_srgb(fr) * 255.0) as u32;
-            let g0 = (linear_to_srgb(fg) * 255.0) as u32;
-            let b0 = (linear_to_srgb(fb) * 255.0) as u32;
-
-            let r1 = (linear_to_srgb(1.0 - fr) * 255.0) as u32;
-            let g1 = (linear_to_srgb(1.0 - fg) * 255.0) as u32;
-            let b1 = (linear_to_srgb(1.0 - fb) * 255.0) as u32;
-
-            let color0 = r0 << 16 | g0 << 8 | b0;
-            let color1 = r1 << 16 | g1 << 8 | b1;
-
-            set_pixel(color0, x+xdir, y, width, buffer);
-            set_pixel(color1, x, y, width, buffer);
+            set_pixel((r,g,b,error), x+xdir, y, width, buffer);
+            set_pixel((r,g,b,1.0-error), x, y, width, buffer);
             error += error_step;
             if error >= 1.0 {
                 x += xdir;
@@ -117,7 +81,7 @@ pub fn wu_line(
 
     }
 
-    set_pixel(color, x1, y1, width, buffer);
+    set_pixel((r,g,b,a), x1, y1, width, buffer);
 }
 
 pub fn linear_to_srgb(x: f32) -> f32 {
@@ -128,35 +92,45 @@ pub fn interp(t: f32, x0: u32, x1: u32) -> u32 {
     ((1.0 - t) * x0 as f32 + t * x1 as f32).round() as u32
 }
 
-pub fn clear(color: u32, buffer: &mut Vec<u32>) {
+pub fn clear(color: (f32,f32,f32,f32), buffer: &mut Vec<(f32,f32,f32,f32)>) {
     for p in buffer.iter_mut() {
         *p = color;
     }
 }
 
-pub fn set_pixel(color: u32, x: i32, y: i32, width: usize, buffer: &mut Vec<u32>) {
+pub fn set_pixel(color: (f32,f32,f32,f32), x: i32, y: i32, width: usize, buffer: &mut Vec<(f32,f32,f32,f32)>) {
     let x = x as usize;
     let y = y as usize;
     let index = x + y * width;
     if index < buffer.len() {
-        let current_color = buffer[index];
-        buffer[index] = color.max(current_color);
+        buffer[index] = color;
     } else {
         panic!("Point out of range x: {}   y: {}", x, y)
     }
 }
+
+pub fn gamma_correct_buffer(in_buffer: &[(f32,f32,f32,f32)], out_buffer: &mut Vec<u32>) {
+    in_buffer.par_iter()
+        .map(|(r,g,b,a)| {
+            ((linear_to_srgb(r * a) * 255.0) as u32) << 16 |
+            ((linear_to_srgb(g * a) * 255.0) as u32) << 8 |
+            (linear_to_srgb(b * a) * 255.0) as u32
+        })
+        .collect_into_vec(out_buffer);
+}
+
 
 #[test]
 fn test_all_points() {
     let width = 71;
     let height = 43;
 
-    let mut buffer: Vec<u32> = vec![0; width * height];
+    let mut buffer: Vec<(f32,f32,f32,f32)> = vec![(0.0, 0.0, 0.0, 0.0); width * height];
     for y0 in 0..height {
         for x0 in 0..width {
             for y1 in 0..height {
                 for x1 in 0..width {
-                    wu_line(0xffff_ffff, (x0 as i32, y0 as i32), (x1 as i32, y1 as i32), width, height, &mut buffer);
+                    wu_line((1.0,1.0,1.0,1.0), (x0 as i32, y0 as i32), (x1 as i32, y1 as i32), width, &mut buffer);
                 }
             }
         }
