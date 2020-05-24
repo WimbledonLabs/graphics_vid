@@ -3,7 +3,6 @@ pub fn wu_line(
     (x0, y0): (i32, i32),
     (x1, y1): (i32, i32),
     width: usize,
-    height: usize,
     buffer: &mut Vec<u32>,
 ) {
     let r = color & 0x00ff_0000 >> 16;
@@ -20,14 +19,14 @@ pub fn wu_line(
     // Vertical line
     if dx == 0 {
         for y in y0.min(y1)..=y0.max(y1) {
-            set_pixel(color, x0, y, width, height, buffer);
+            set_pixel(color, x0, y, width, buffer);
         }
     }
 
     // Horizontal line
     else if dy == 0 {
         for x in x0.min(x1)..=x0.max(x1) {
-            set_pixel(color, x, y0, width, height, buffer)
+            set_pixel(color, x, y0, width, buffer)
         }
     }
 
@@ -37,7 +36,7 @@ pub fn wu_line(
         let xdir = dx.signum();
         let ydir = dy.signum();
         for i in 0..=dx {
-            set_pixel(color, i*xdir + x0, i*ydir + y0, width, height, buffer);
+            set_pixel(color, i*xdir + x0, i*ydir + y0, width, buffer);
         }
     }
 
@@ -67,8 +66,8 @@ pub fn wu_line(
             let color0 = r0 << 16 | g0 << 8 | b0;
             let color1 = r1 << 16 | g1 << 8 | b1;
 
-            set_pixel(color0, x, y+ydir, width, height, buffer);
-            set_pixel(color1, x, y, width, height, buffer);
+            set_pixel(color0, x, y+ydir, width, buffer);
+            set_pixel(color1, x, y, width, buffer);
             error += error_step;
             if error >= 1.0 {
                 y += ydir;
@@ -105,8 +104,8 @@ pub fn wu_line(
             let color0 = r0 << 16 | g0 << 8 | b0;
             let color1 = r1 << 16 | g1 << 8 | b1;
 
-            set_pixel(color0, x+xdir, y, width, height, buffer);
-            set_pixel(color1, x, y, width, height, buffer);
+            set_pixel(color0, x+xdir, y, width, buffer);
+            set_pixel(color1, x, y, width, buffer);
             error += error_step;
             if error >= 1.0 {
                 x += xdir;
@@ -118,7 +117,7 @@ pub fn wu_line(
 
     }
 
-    set_pixel(color, x1, y1, width, height, buffer);
+    set_pixel(color, x1, y1, width, buffer);
 }
 
 pub fn linear_to_srgb(x: f32) -> f32 {
@@ -135,12 +134,13 @@ pub fn clear(color: u32, buffer: &mut Vec<u32>) {
     }
 }
 
-pub fn set_pixel(color: u32, x: i32, y: i32, width: usize, height: usize, buffer: &mut Vec<u32>) {
+pub fn set_pixel(color: u32, x: i32, y: i32, width: usize, buffer: &mut Vec<u32>) {
     let x = x as usize;
     let y = y as usize;
-    if x < width && y < height {
-        // TODO: alpha blending
-        buffer[x + y * width] = color.max(buffer[x + y * width]);
+    let index = x + y * width;
+    if index < buffer.len() {
+        let current_color = buffer[index];
+        buffer[index] = color.max(current_color);
     } else {
         panic!("Point out of range x: {}   y: {}", x, y)
     }

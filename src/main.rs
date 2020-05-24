@@ -32,7 +32,7 @@ fn main() {
         let frame_start = std::time::Instant::now();
         for y in vec![100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].iter() {
             for x in vec![100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800].iter() {
-                wu_line(0xffff_ffff, (*x, *y), mouse_posi, WIDTH, HEIGHT, &mut buffer);
+                wu_line(0xffff_ffff, (*x, *y), mouse_posi, WIDTH, &mut buffer);
             }
         }
 
