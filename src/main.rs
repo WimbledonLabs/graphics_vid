@@ -21,21 +21,55 @@ fn main() {
     // Limit to max ~60 fps update rate
     window.limit_update_rate(Some(std::time::Duration::from_micros(16666)));
 
+    let mut t = 0;
     while window.is_open() && !window.is_key_down(Key::Escape) {
         clear((0.0,0.0,0.0,1.0), &mut buffer);
 
-        let mouse_posf = window.get_mouse_pos(minifb::MouseMode::Clamp).unwrap_or((0.0, 0.0));
+        let mouse_posf = window.get_mouse_pos(minifb::MouseMode::Pass).unwrap_or((0.0, 0.0));
         let mouse_posi = (
-            i32::min(mouse_posf.0.round() as i32, WIDTH as i32 - 1),
-            i32::min(mouse_posf.1.round() as i32, HEIGHT as i32 - 1)
+            mouse_posf.0.round() as i32,
+            mouse_posf.1.round() as i32,
         );
 
+        fn distort((x,y): (i32, i32)) -> (i32, i32) {
+            // As y gets closer to 0, x gets closer to the midpoint (WIDTH/2)
+            let distortion = y as f32 / HEIGHT as f32;
+            let xf = (x - (WIDTH/2) as i32) as f32 * distortion + (WIDTH/2) as f32;
+            let yf = (y - (HEIGHT/2) as i32) as f32 * distortion + (HEIGHT/2) as f32;
+
+            (xf.round() as i32, yf.round() as i32)
+        }
+
         let frame_start = std::time::Instant::now();
-        for y in vec![100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].iter() {
-            for x in vec![100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800].iter() {
-                wu_line((1.0, 1.0, 1.0, 1.0), (*x, *y), mouse_posi, WIDTH, &mut buffer);
+        for y in 1..=25 {
+            for x in 1..=36 {
+                let real_y = y * 50 + (t%50);
+                let value = match real_y {
+                    (0..=950) => (real_y as f32 / 1080.0).powi(2),
+                    _ => {
+                        let t = (1000 - real_y) as f32 / 50.0;
+                        clamp(interpf(t, 0.0, 1.0), 0.0, 1.0)
+                    },
+                };
+
+                let color = (
+                    value,
+                    0.0,
+                    value,
+                    1.0,
+                );
+
+                if value != 0.0 {
+                    wu_line(color, distort(((x+0)*50, (y+0)*50 + (t%50))), distort(((x+1)*50, (y+0)*50 + (t%50))), WIDTH, &mut buffer);
+                    wu_line(color, distort(((x+1)*50, (y+0)*50 + (t%50))), distort(((x+1)*50, (y+1)*50 + (t%50))), WIDTH, &mut buffer);
+                    wu_line(color, distort(((x+1)*50, (y+1)*50 + (t%50))), distort(((x+0)*50, (y+1)*50 + (t%50))), WIDTH, &mut buffer);
+                    wu_line(color, distort(((x+0)*50, (y+1)*50 + (t%50))), distort(((x+0)*50, (y+0)*50 + (t%50))), WIDTH, &mut buffer);
+                    wu_line(color, distort(((x+0)*50, (y+1)*50 + (t%50))), distort(((x+1)*50, (y+0)*50 + (t%50))), WIDTH, &mut buffer);
+                }
             }
         }
+
+        wu_line((1.0, 1.0, 1.0, 1.0), (WIDTH as i32/2, HEIGHT as i32/2), mouse_posi, WIDTH, &mut buffer);
 
         gamma_correct_buffer(&buffer, &mut ibuffer);
 
@@ -44,5 +78,7 @@ fn main() {
 
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
         window.update_with_buffer(&ibuffer, WIDTH, HEIGHT).unwrap();
+
+        t += 1;
     }
 }
