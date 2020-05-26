@@ -108,7 +108,13 @@ pub fn line_segment_in_rect(
     // Get the point with the smallest x and the point with the largest x (in range).
     // This is our new line.
 
-    fn replace_if_x_smaller_in_range(value: &mut Option<(i32, i32)>, new: (i32, i32), min_x: i32, max_x: i32, min_y: i32, max_y: i32) {
+    #[derive(PartialEq)]
+    enum Preference {
+        Preferred,
+        NonPreferred
+    }
+
+    fn replace_if_x_smaller_in_range(value: &mut Option<(i32, i32)>, new: (i32, i32), min_x: i32, max_x: i32, min_y: i32, max_y: i32, preference: Preference) {
         // If the point isn't in range, don't do anything
         if     !in_range(new.0, min_x, max_x)
             || !in_range(new.1, min_y, max_y) {
@@ -118,13 +124,15 @@ pub fn line_segment_in_rect(
         // So the point _is_ in range, and we need to see if it's better
         match value {
             None => *value = Some(new),
-            Some(old) => if new.0 < old.0 {
-                *value = Some(new)
+            Some(old) => {
+                if new.0 < old.0 || new.0 == old.0 && preference == Preference::Preferred {
+                    *value = Some(new)
+                }
             }
         }
     }
 
-    fn replace_if_x_larger_in_range(value: &mut Option<(i32, i32)>, new: (i32, i32), min_x: i32, max_x: i32, min_y: i32, max_y: i32) {
+    fn replace_if_x_larger_in_range(value: &mut Option<(i32, i32)>, new: (i32, i32), min_x: i32, max_x: i32, min_y: i32, max_y: i32, preference: Preference) {
         // If the point isn't in range, don't do anything
         if     !in_range(new.0, min_x, max_x)
             || !in_range(new.1, min_y, max_y) {
@@ -134,29 +142,31 @@ pub fn line_segment_in_rect(
         // So the point _is_ in range, and we need to see if it's better
         match value {
             None => *value = Some(new),
-            Some(old) => if new.0 > old.0 {
-                *value = Some(new)
+            Some(old) => {
+                if new.0 > old.0 || new.0 == old.0 && preference == Preference::Preferred {
+                    *value = Some(new)
+                }
             }
         }
     }
 
-    replace_if_x_smaller_in_range(&mut new_p0, p0, min_x, max_x, min_y, max_y);
-    replace_if_x_larger_in_range(&mut new_p1, p0, min_x, max_x, min_y, max_y);
+    replace_if_x_smaller_in_range(&mut new_p0, p0, min_x, max_x, min_y, max_y, Preference::NonPreferred);
+    replace_if_x_larger_in_range(&mut new_p1, p0, min_x, max_x, min_y, max_y, Preference::NonPreferred);
     
-    replace_if_x_smaller_in_range(&mut new_p0, p1, min_x, max_x, min_y, max_y);
-    replace_if_x_larger_in_range(&mut new_p1, p1, min_x, max_x, min_y, max_y);
+    replace_if_x_smaller_in_range(&mut new_p0, p1, min_x, max_x, min_y, max_y, Preference::NonPreferred);
+    replace_if_x_larger_in_range(&mut new_p1, p1, min_x, max_x, min_y, max_y, Preference::NonPreferred);
     
-    replace_if_x_smaller_in_range(&mut new_p0, top_intersection, min_x, max_x, min_y, max_y);
-    replace_if_x_larger_in_range(&mut new_p1, top_intersection, min_x, max_x, min_y, max_y);
+    replace_if_x_smaller_in_range(&mut new_p0, top_intersection, min_x, max_x, min_y, max_y, Preference::Preferred);
+    replace_if_x_larger_in_range(&mut new_p1, top_intersection, min_x, max_x, min_y, max_y, Preference::NonPreferred);
     
-    replace_if_x_smaller_in_range(&mut new_p0, bottom_intersection, min_x, max_x, min_y, max_y);
-    replace_if_x_larger_in_range(&mut new_p1, bottom_intersection, min_x, max_x, min_y, max_y);
+    replace_if_x_smaller_in_range(&mut new_p0, bottom_intersection, min_x, max_x, min_y, max_y, Preference::NonPreferred);
+    replace_if_x_larger_in_range(&mut new_p1, bottom_intersection, min_x, max_x, min_y, max_y, Preference::Preferred);
     
-    replace_if_x_smaller_in_range(&mut new_p0, left_intersection, min_x, max_x, min_y, max_y);
-    replace_if_x_larger_in_range(&mut new_p1, left_intersection, min_x, max_x, min_y, max_y);
+    replace_if_x_smaller_in_range(&mut new_p0, left_intersection, min_x, max_x, min_y, max_y, Preference::Preferred);
+    replace_if_x_larger_in_range(&mut new_p1, left_intersection, min_x, max_x, min_y, max_y, Preference::NonPreferred);
     
-    replace_if_x_smaller_in_range(&mut new_p0, right_intersection, min_x, max_x, min_y, max_y);
-    replace_if_x_larger_in_range(&mut new_p1, right_intersection, min_x, max_x, min_y, max_y);
+    replace_if_x_smaller_in_range(&mut new_p0, right_intersection, min_x, max_x, min_y, max_y, Preference::NonPreferred);
+    replace_if_x_larger_in_range(&mut new_p1, right_intersection, min_x, max_x, min_y, max_y, Preference::Preferred);
 
     match (new_p0, new_p1) {
         (Some(a), Some(b)) => Some((a, b)),
