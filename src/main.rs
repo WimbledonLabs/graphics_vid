@@ -69,7 +69,89 @@ fn main() {
             }
         }
 
-        wu_line((1.0, 1.0, 1.0, 1.0), (WIDTH as i32/2, HEIGHT as i32/2), mouse_posi, WIDTH, &mut buffer);
+        draw_text((1.0, 1.0, 1.0), (750,250), 40.0, "0123456789", WIDTH, &mut buffer);
+        draw_text((1.0, 1.0, 1.0), (100,325), 40.0, "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG", WIDTH, &mut buffer);
+        draw_text((1.0, 1.0, 1.0), (100,400), 40.0, "the quick brown fox jumps over the lazy dog", WIDTH, &mut buffer);
+
+        for (line_text, line_num) in r##"
+draw_text(
+    (1.0, 1.0, 1.0),
+    (60,150),
+    20.0,
+    " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+    WIDTH,
+    &mut buffer
+);
+        "##.split("\n").zip(0..=10000)
+        {
+            draw_text((1.0, 1.0, 1.0), (100,450+line_num*30), 20.0, line_text, WIDTH, &mut buffer);
+        }
+
+        draw_text((1.0, 1.0, 1.0), (10,89), 8.0, " 6 pt: ", WIDTH, &mut buffer);
+        draw_text(
+            (1.0, 1.0, 1.0),
+            (60,89),
+            6.0,
+            "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+            WIDTH,
+            &mut buffer
+        );
+        draw_text((1.0, 1.0, 1.0), (10,100), 8.0, " 8 pt: ", WIDTH, &mut buffer);
+        draw_text(
+            (1.0, 1.0, 1.0),
+            (60,100),
+            8.0,
+            "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+            WIDTH,
+            &mut buffer
+        );
+        draw_text((1.0, 1.0, 1.0), (10,115), 8.0, "10 pt: ", WIDTH, &mut buffer);
+        draw_text(
+            (1.0, 1.0, 1.0),
+            (60,114),
+            10.0,
+            "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+            WIDTH,
+            &mut buffer
+        );
+        draw_text((1.0, 1.0, 1.0), (10,133), 8.0, "12 pt: ", WIDTH, &mut buffer);
+        draw_text(
+            (1.0, 1.0, 1.0),
+            (60,131),
+            12.0,
+            "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+            WIDTH,
+            &mut buffer
+        );
+        draw_text((1.0, 1.0, 1.0), (10,154), 8.0, "14 pt: ", WIDTH, &mut buffer);
+        draw_text(
+            (1.0, 1.0, 1.0),
+            (60,151),
+            14.0,
+            "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+            WIDTH,
+            &mut buffer
+        );
+        draw_text((1.0, 1.0, 1.0), (10,178), 8.0, "16 pt: ", WIDTH, &mut buffer);
+        draw_text(
+            (1.0, 1.0, 1.0),
+            (60,174),
+            16.0,
+            "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+            WIDTH,
+            &mut buffer
+        );
+        draw_text((1.0, 1.0, 1.0), (10,205), 8.0, "18 pt: ", WIDTH, &mut buffer);
+        draw_text(
+            (1.0, 1.0, 1.0),
+            (60,200),
+            18.0,
+            "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+            WIDTH,
+            &mut buffer
+        );
+
+        //wu_line((1.0, 1.0, 1.0, 1.0), (WIDTH as i32/2, HEIGHT as i32/2), mouse_posi, WIDTH, &mut buffer);
 
         gamma_correct_buffer(&buffer, &mut ibuffer);
 
